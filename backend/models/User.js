@@ -1,34 +1,129 @@
-import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
-export async function protectRoute(req, res, next){
-  try{
-    const token=req.cookies?.token || (req.headers.authorization?.startsWith("Bearer")?req.headers.authorization.split(" ")[1]:null);
+const userSchema = new mongoose.Schema({
+  fullName: {
+    type: String,
+    trim: true,
+    required: true,
+  },
 
-    if(!token){
-      return res.status(401).json({message: "Not authorized, token missing"});
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\S+@\S+\.\S+$/, "Invalid email format"],
+  },
+
+  password: {
+    type: String,
+    minlength: 8,
+  },
+
+  username: {
+    type: String,
+    unique: true,
+    sparse: true, // allows username to be empty initially
+  },
+
+  profilePic: {
+    type: String,
+    default: "",
+  },
+
+  profilePicId: {
+    type: String,
+  },
+
+  isOnboarded: {
+    type: Boolean,
+    default: false,
+  },
+
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+
+  verificationToken: String,
+  verificationTokenExpires: Date,
+
+  googleId: {
+    type: String,
+  },
+
+  passwordResetToken: String,
+  passwordResetExpires: Date,
+
+  /* -------------------------------------------------------
+     🎓 Education & Skills Section
+  ------------------------------------------------------- */
+
+  // User's main university
+  university: {
+    type: String,
+    trim: true,
+  },
+
+  // GPA (supports decimal values like 3.87)
+  gpa: {
+    type: Number,
+    min: 0,
+    max: 4.0,
+  },
+
+  // List of education entries (useful for resumes)
+  education: [
+    {
+      degree: { type: String, trim: true },
+      fieldOfStudy: { type: String, trim: true },
+      institution: { type: String, trim: true },
+      startYear: Number,
+      endYear: Number,
     }
+  ],
+
+  // User's skills as tags (ex: ["React", "Node.js", "MongoDB"])
+  skills: {
+    type: [String],
+    default: [],
+  },
+
+}, { timestamps: true });
 
 
-    const decoded=jwt.verify(token, process.env.JWT_SECRET);
-    if(!decoded) {
-      return res.status(401).json({message: "Invalid token"});
+// Hash password before saving (only if password exists and is modified)
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password") || !this.password) return next();
 
-    }
-
-
-    const user=await User.findById(decoded.id).select("-password");
-    if(!user){
-      return res.status(401).json({message: "User not found"});
-    }
-
-
-    req.user=user;
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
+  } catch (error) {
+    next(error);
   }
+});
 
-  catch(error) {
-   console.error("ProtecteRoute error: ", error);
-   return res.status(401).json({message: "Unauthorized or expired token"});
-  }
-}
+// Compare password for login
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false; // Google users have no password
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Hide sensitive fields when returning user object
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  delete obj.verificationToken;
+  delete obj.verificationTokenExpires;
+  delete obj.passwordResetToken;
+  delete obj.passwordResetExpires;
+  return obj;
+};
+
+const User = mongoose.model("User", userSchema);
+
+export default User;
