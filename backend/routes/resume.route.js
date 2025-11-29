@@ -1,12 +1,12 @@
-const express = require("express");
-const router = express.Router();
-const multer = require("multer");
-const { uploadResume } = require("../controllers/resume.controller.js");
-const { protect } = require("../middleware/auth");
+import express from "express";
+import multer from "multer";
+import { uploadResume } from "../controllers/resume.controller.js";
+import { protect } from "../middleware/auth.js";
 
+const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 router.post("/upload", protect, upload.single("resume"), uploadResume);
 
-module.exports = router;
+export default router;
