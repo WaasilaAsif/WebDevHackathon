@@ -7,27 +7,47 @@ export const useInterview = () => {
   const [generationStatus, setGenerationStatus] = useState('idle');
   const [interviewPrep, setInterviewPrep] = useState(null);
   const [history, setHistory] = useState([]);
+  const [progress, setProgress] = useState({ percentage: 0, message: '' });
 
-  const generatePrep = useCallback(async (interviewData) => {
+  const generatePrep = useCallback(async (interviewData, onProgress) => {
     setLoading(true);
     setError(null);
     setGenerationStatus('generating');
+    setProgress({ percentage: 0, message: 'Starting research...' });
+
+    // Internal progress handler
+    const handleProgress = (percentage, message) => {
+      setProgress({ percentage, message });
+      if (onProgress) onProgress(percentage, message);
+    };
 
     try {
-      // Start generation
-      const response = await interviewService.generateInterviewPrep(interviewData);
+      // Start generation with progress tracking
+      const response = await interviewService.generateInterviewPrep(interviewData, handleProgress);
       
-      // Wait for completion
-      const prepResult = await interviewService.waitForPrep(response.prepId);
+      // If already completed (mock mode), use the data directly
+      if (response.data && response.status === 'completed') {
+        setInterviewPrep(response.data);
+        setGenerationStatus('completed');
+        setProgress({ percentage: 100, message: 'Complete!' });
+        setLoading(false);
+        return { success: true, data: response.data };
+      }
+      
+      // Wait for completion with progress
+      const prepResult = await interviewService.waitForPrep(response.prepId, handleProgress);
       
       setInterviewPrep(prepResult);
       setGenerationStatus('completed');
+      setProgress({ percentage: 100, message: 'Complete!' });
       setLoading(false);
 
       return { success: true, data: prepResult };
     } catch (err) {
+      console.error('❌ Generate prep error:', err);
       setError(err.message || 'Failed to generate interview prep');
       setGenerationStatus('failed');
+      setProgress({ percentage: 0, message: 'Failed' });
       setLoading(false);
       return { success: false, error: err.message };
     }
@@ -123,6 +143,7 @@ export const useInterview = () => {
     generationStatus,
     interviewPrep,
     history,
+    progress,
     generatePrep,
     getPrep,
     getHistory,

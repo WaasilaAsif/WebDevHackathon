@@ -3,7 +3,7 @@ import api, { apiUtils } from './api';
 // MOCK MODE
 const USE_MOCK_DATA = !import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_USE_MOCK === 'true';
 
-// Mock data storage
+// Mock storage (only for frontend-only mode)
 const mockStorage = {
   preps: [],
 };
@@ -11,114 +11,108 @@ const mockStorage = {
 // Generate mock prep ID
 const generateMockPrepId = () => `prep_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-// Generate mock interview prep data
-const generateMockPrep = (interviewData) => {
+// Simple mock prep generator (fallback only)
+const generateSimpleMockPrep = (interviewData) => {
   const prepId = generateMockPrepId();
-  const company = interviewData.company || 'Tech Company';
-  const role = interviewData.role || 'Software Engineer';
-  const technologies = interviewData.techTags || interviewData.technologies || ['JavaScript', 'React'];
-  
   return {
     id: prepId,
     prepId,
     userId: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).id : '1',
-    company,
-    role,
-    technologies,
+    company: interviewData.company || 'Tech Company',
+    role: interviewData.role || 'Software Engineer',
+    technologies: interviewData.technologies || interviewData.techTags || [],
     createdAt: new Date().toISOString(),
-    status: 'generating',
+    status: 'completed',
     materials: {
       technicalQuestions: [
         {
           id: 'q1',
-          question: `Design a scalable system for ${company}'s main product`,
+          question: `Design a scalable system`,
           type: 'technical',
-          difficulty: 'hard',
-          topics: ['System Design', 'Scalability'],
-          hints: ['Consider microservices architecture', 'Think about database sharding', 'Plan for load balancing'],
-          sampleAnswer: 'A scalable system would involve...'
+          difficulty: 'Hard',
+          topic: 'System Design',
+          topics: ['System Design'],
+          hints: ['Consider microservices', 'Think about scalability'],
+          sampleAnswer: 'A scalable system would involve...',
         },
-        {
-          id: 'q2',
-          question: `Implement a ${technologies[0] || 'JavaScript'} function to reverse a linked list`,
-          type: 'technical',
-          difficulty: 'medium',
-          topics: ['Data Structures', technologies[0] || 'JavaScript'],
-          hints: ['Use two pointers', 'Handle edge cases', 'Consider recursion'],
-          sampleAnswer: 'function reverseLinkedList(head) { ... }'
-        },
-        {
-          id: 'q3',
-          question: `Explain how you would optimize a ${technologies[0] || 'React'} application for performance`,
-          type: 'technical',
-          difficulty: 'medium',
-          topics: ['Performance', technologies[0] || 'React'],
-          hints: ['Code splitting', 'Memoization', 'Virtual DOM optimization'],
-          sampleAnswer: 'Performance optimization involves...'
-        }
       ],
       behavioralQuestions: [
         {
           id: 'b1',
-          question: 'Tell me about a time you had to work under pressure',
+          question: 'Tell me about a time you worked under pressure',
           type: 'behavioral',
-          difficulty: 'easy',
-          topics: ['Teamwork', 'Problem Solving'],
-          hints: ['Use STAR method', 'Be specific', 'Show results'],
-          sampleAnswer: 'Situation: ... Task: ... Action: ... Result: ...'
+          category: 'Time Management',
+          starGuidance: {
+            Situation: 'Describe the situation',
+            Task: 'What was your task?',
+            Action: 'What actions did you take?',
+            Result: 'What were the results?',
+          },
         },
-        {
-          id: 'b2',
-          question: 'Describe a challenging technical problem you solved',
-          type: 'behavioral',
-          difficulty: 'medium',
-          topics: ['Problem Solving', 'Technical Skills'],
-          hints: ['Focus on your process', 'Explain the solution clearly', 'Highlight learning'],
-          sampleAnswer: 'I encountered a performance issue where...'
-        }
       ],
-      studyGuide: {
-        keyTopics: technologies,
-        resources: [
-          `Company culture at ${company}`,
-          `${role} interview best practices`,
-          'System design fundamentals',
-          'Data structures and algorithms'
-        ],
-        tips: [
-          'Review the company\'s tech stack',
-          'Practice coding problems daily',
-          'Prepare questions about the team',
-          'Research recent company news'
-        ]
-      },
-      keyTopics: technologies
-    }
+      studyGuide: [],
+    },
   };
 };
 
 const interviewService = {
-  // Generate interview preparation materials
-  generateInterviewPrep: async (interviewData) => {
+  // Generate interview preparation - calls backend API
+  generateInterviewPrep: async (interviewData, onProgress) => {
     if (USE_MOCK_DATA) {
-      // Simulate generation delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Fallback: simple mock generation
+      if (onProgress) {
+        onProgress(50, 'Generating...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        onProgress(100, 'Complete!');
+      }
       
-      const prep = generateMockPrep(interviewData);
-      prep.status = 'generating';
+      const prep = generateSimpleMockPrep(interviewData);
       mockStorage.preps.push(prep);
       
       return {
         prepId: prep.prepId,
-        status: 'generating',
-        message: 'Interview prep generation started'
+        status: 'completed',
+        message: 'Interview prep generated',
+        data: prep,
       };
     }
     
     try {
+      // Call backend API
       const response = await api.post('/interview/generate', interviewData);
-      return response.data;
+      const result = response.data;
+      
+      if (result.success && result.data) {
+        // Store in mock storage for retrieval
+        if (result.data.prep) {
+          mockStorage.preps.push(result.data.prep);
+        }
+        
+        return {
+          prepId: result.data.prepId,
+          status: result.data.status || 'completed',
+          message: result.data.message || 'Interview prep generated',
+          data: result.data.prep || result.data,
+        };
+      }
+      
+      throw new Error(result.error || 'Failed to generate interview prep');
     } catch (error) {
+      console.error('❌ Generate prep API error:', error);
+      
+      // Fallback to simple mock if API fails
+      if (USE_MOCK_DATA || error.response?.status >= 500) {
+        console.warn('⚠️ Using fallback mock generation');
+        const prep = generateSimpleMockPrep(interviewData);
+        mockStorage.preps.push(prep);
+        return {
+          prepId: prep.prepId,
+          status: 'completed',
+          message: 'Generated with fallback',
+          data: prep,
+        };
+      }
+      
       throw error;
     }
   },
@@ -134,57 +128,48 @@ const interviewService = {
   },
 
   // Wait for interview prep generation
-  waitForPrep: async (prepId) => {
+  waitForPrep: async (prepId, onProgress) => {
     if (USE_MOCK_DATA) {
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Check mock storage
       const prep = mockStorage.preps.find(p => p.prepId === prepId || p.id === prepId);
       if (prep) {
-        prep.status = 'completed';
-        return {
-          ...prep,
-          status: 'completed'
-        };
+        return prep;
       }
       throw new Error('Interview prep not found');
     }
     
     try {
-      const result = await apiUtils.pollStatus(`/interview/prep/${prepId}/status`);
+      const result = await apiUtils.pollStatus(`/interview/prep/${prepId}/status`, 2000, 30, onProgress);
       return result;
     } catch (error) {
       throw error;
     }
   },
 
-  // Get interview prep details
+  // Get interview prep details - calls backend API
   getInterviewPrep: async (prepId) => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const prep = mockStorage.preps.find(p => p.prepId === prepId || p.id === prepId);
-      if (prep) {
-        return prep;
-      }
-      // If not found, generate a default one
-      const defaultPrep = generateMockPrep({ company: 'Tech Company', role: 'Software Engineer' });
-      defaultPrep.status = 'completed';
-      mockStorage.preps.push(defaultPrep);
-      return defaultPrep;
+    // Check mock storage first (for frontend-only mode)
+    const mockPrep = mockStorage.preps.find(p => p.prepId === prepId || p.id === prepId);
+    if (USE_MOCK_DATA && mockPrep) {
+      return mockPrep;
     }
     
     try {
       const response = await api.get(`/interview/prep/${prepId}`);
-      return response.data;
+      return response.data?.data || response.data;
     } catch (error) {
+      // Fallback to mock if available
+      if (mockPrep) {
+        console.warn('⚠️ API failed, using mock data');
+        return mockPrep;
+      }
       throw error;
     }
   },
 
-  // Get interview history
+  // Get interview history - calls backend API
   getInterviewHistory: async () => {
     if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 500));
       return {
         preps: mockStorage.preps.map(p => ({
           id: p.id,
@@ -200,8 +185,22 @@ const interviewService = {
     
     try {
       const response = await api.get('/interview/history');
-      return response.data;
+      return response.data?.data || response.data;
     } catch (error) {
+      // Fallback to mock
+      if (USE_MOCK_DATA) {
+        return {
+          preps: mockStorage.preps.map(p => ({
+            id: p.id,
+            prepId: p.prepId,
+            company: p.company,
+            role: p.role,
+            createdAt: p.createdAt,
+            status: p.status
+          })),
+          total: mockStorage.preps.length
+        };
+      }
       throw error;
     }
   },
@@ -226,49 +225,53 @@ const interviewService = {
     }
   },
 
-  // Delete interview prep
+  // Delete interview prep - calls backend API
   deleteInterviewPrep: async (prepId) => {
+    // Remove from mock storage
+    if (USE_MOCK_DATA) {
+      mockStorage.preps = mockStorage.preps.filter(p => p.prepId !== prepId && p.id !== prepId);
+    }
+    
     try {
       const response = await api.delete(`/interview/prep/${prepId}`);
       return response.data;
     } catch (error) {
+      // If delete succeeded in mock, return success
+      if (USE_MOCK_DATA) {
+        return { success: true };
+      }
       throw error;
     }
   },
 
-  // Get company insights
+  // Get company insights - calls backend research API
   getCompanyInsights: async (companyName) => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 800));
+    try {
+      // Use research service which calls backend
+      const researchService = (await import('./researchService.js')).default;
+      return await researchService.researchCompany(companyName);
+    } catch (error) {
+      console.error('Company insights error:', error);
+      // Return basic fallback
       return {
         company: companyName,
-        summary: `${companyName} is a technology company known for innovation and strong engineering culture.`,
-        interviewProcess: [
-          'Initial phone screen (30-45 minutes)',
-          'Technical interview (1-2 hours)',
-          'System design round (1 hour)',
-          'Behavioral interview (45 minutes)',
-          'Final round with hiring manager'
-        ],
-        commonQuestions: [
-          'Why do you want to work here?',
-          'Tell me about a challenging project',
-          'How do you handle conflicts in a team?'
-        ],
-        techStack: ['JavaScript', 'React', 'Node.js', 'Python', 'AWS'],
-        culture: 'Fast-paced, collaborative, innovation-focused',
-        tips: [
-          'Research the company\'s recent projects',
-          'Prepare questions about team structure',
-          'Show enthusiasm for the company\'s mission'
-        ]
+        summary: `${companyName} is a technology company.`,
+        interviewProcess: ['Phone screen', 'Technical interview'],
+        commonQuestions: ['Why this company?'],
+        techStack: [],
+        culture: 'Innovation-focused',
+        tips: ['Research the company'],
       };
     }
-    
+  },
+
+  // Get deep research - calls backend research API
+  getDeepResearch: async (companyName, role) => {
     try {
-      const response = await api.get(`/interview/company/${encodeURIComponent(companyName)}`);
-      return response.data;
+      const researchService = (await import('./researchService.js')).default;
+      return await researchService.deepResearch(companyName, role);
     } catch (error) {
+      console.error('Deep research error:', error);
       throw error;
     }
   },

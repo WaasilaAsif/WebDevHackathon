@@ -1,115 +1,73 @@
-import React, { useState } from 'react';
-import { Download, BookOpen, CheckCircle, Code, Users, Lightbulb } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Download, BookOpen, CheckCircle, Code, Users, Lightbulb, ArrowLeft, Loader2 } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import { useInterview } from '../../hooks/useInterview';
 
 const InterviewResult = () => {
-  // Mock data - Developer B will fetch from API
-  const [interviewData] = useState({
-    company: 'Google',
-    role: 'Senior Software Engineer',
-    generatedAt: new Date().toLocaleDateString(),
-    companySummary: 'Google is a technology company focused on search, advertising, cloud computing, and various software products. Known for rigorous technical interviews and strong engineering culture.',
-    technicalQuestions: [
-      {
-        id: 1,
-        question: 'Design a rate limiter for an API service',
-        difficulty: 'Hard',
-        topic: 'System Design',
-        hints: ['Consider different rate limiting algorithms', 'Think about distributed systems', 'How to handle edge cases'],
-      },
-      {
-        id: 2,
-        question: 'Implement a LRU Cache with O(1) operations',
-        difficulty: 'Medium',
-        topic: 'Data Structures',
-        hints: ['Use HashMap and Doubly Linked List', 'Track access order', 'Handle capacity limits'],
-      },
-      {
-        id: 3,
-        question: 'Find the longest palindromic substring in a string',
-        difficulty: 'Medium',
-        topic: 'Algorithms',
-        hints: ['Consider dynamic programming', 'Expand around center approach', 'Edge cases with single characters'],
-      },
-      {
-        id: 4,
-        question: 'Explain how HTTPS works and the TLS handshake process',
-        difficulty: 'Medium',
-        topic: 'Networking',
-        hints: ['Certificate exchange', 'Public/private key encryption', 'Session keys'],
-      },
-    ],
-    behavioralQuestions: [
-      {
-        id: 1,
-        question: 'Tell me about a time when you had to resolve a conflict within your team',
-        category: 'Teamwork',
-        starGuidance: {
-          situation: 'Describe the team context and the conflict',
-          task: 'What was your role in resolving it?',
-          action: 'What specific steps did you take?',
-          result: 'What was the outcome and what did you learn?',
-        },
-      },
-      {
-        id: 2,
-        question: 'Describe a situation where you had to meet a tight deadline',
-        category: 'Time Management',
-        starGuidance: {
-          situation: 'Set the context of the project',
-          task: 'What was the deadline and your responsibility?',
-          action: 'How did you prioritize and manage your time?',
-          result: 'Did you meet the deadline? What was the impact?',
-        },
-      },
-      {
-        id: 3,
-        question: 'Give an example of when you took initiative on a project',
-        category: 'Leadership',
-        starGuidance: {
-          situation: 'Describe the opportunity you identified',
-          task: 'What needed to be done?',
-          action: 'What initiative did you take?',
-          result: 'What was the outcome?',
-        },
-      },
-    ],
-    studyGuide: [
-      {
-        topic: 'System Design',
-        concepts: [
-          'Scalability patterns (horizontal vs vertical)',
-          'Load balancing strategies',
-          'Caching mechanisms (Redis, Memcached)',
-          'Database sharding and replication',
-          'Microservices architecture',
-        ],
-      },
-      {
-        topic: 'Data Structures & Algorithms',
-        concepts: [
-          'Hash tables and collision handling',
-          'Binary trees (BST, AVL, Red-Black)',
-          'Graph algorithms (DFS, BFS, Dijkstra)',
-          'Dynamic programming patterns',
-          'Time and space complexity analysis',
-        ],
-      },
-      {
-        topic: 'Networking',
-        concepts: [
-          'TCP/IP protocol stack',
-          'HTTP/HTTPS and REST principles',
-          'DNS resolution process',
-          'WebSockets and real-time communication',
-          'CDN and edge computing',
-        ],
-      },
-    ],
-  });
-
+  const { prepId } = useParams();
+  const navigate = useNavigate();
+  const { getPrep, loading, error } = useInterview();
+  const [interviewData, setInterviewData] = useState(null);
   const [markedQuestions, setMarkedQuestions] = useState([]);
+
+  // Fetch interview prep data
+  useEffect(() => {
+    const loadPrep = async () => {
+      if (!prepId) {
+        console.error('No prepId provided');
+        return;
+      }
+
+      const result = await getPrep(prepId);
+      
+      if (result.success && result.data) {
+        // Transform service data to component format
+        const prep = result.data;
+        setInterviewData({
+          company: prep.company,
+          role: prep.role,
+          generatedAt: new Date(prep.createdAt || Date.now()).toLocaleDateString(),
+          companySummary: prep.companyResearch?.summary || prep.companyResearch?.company?.summary || 'Company information',
+          companyResearch: prep.companyResearch,
+          roleResearch: prep.roleResearch,
+          technicalQuestions: (prep.materials?.technicalQuestions || []).map((q, idx) => ({
+            id: q.id || `tech-${idx}`,
+            question: q.question,
+            difficulty: q.difficulty || 'Medium',
+            topic: q.topic || q.topics?.[0] || 'General',
+            topics: q.topics || (q.topic ? [q.topic] : []),
+            hints: q.hints || [],
+            sampleAnswer: q.sampleAnswer || '',
+            estimatedTime: q.estimatedTime || '20-30 minutes',
+          })),
+          behavioralQuestions: (prep.materials?.behavioralQuestions || []).map((q, idx) => ({
+            id: q.id || `behavioral-${idx}`,
+            question: q.question,
+            category: q.category || 'General',
+            difficulty: q.difficulty || 'Medium',
+            topics: q.topics || [],
+            starGuidance: q.starGuidance || {
+              Situation: 'Describe the situation',
+              Task: 'What was your task?',
+              Action: 'What actions did you take?',
+              Result: 'What were the results?',
+            },
+            hints: q.hints || [],
+            sampleAnswer: q.sampleAnswer || '',
+          })),
+          studyGuide: prep.materials?.studyGuide || [],
+        });
+      } else {
+        console.error('Failed to load prep:', result.error);
+      }
+    };
+
+    if (prepId) {
+      loadPrep();
+    }
+  }, [prepId, getPrep]);
 
   const toggleMark = (questionId, type) => {
     const key = `${type}-${questionId}`;
@@ -130,9 +88,11 @@ const InterviewResult = () => {
   };
 
   const handleExport = () => {
+    if (!interviewData) return;
+    
     const dataStr = JSON.stringify(interviewData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const exportFileDefaultName = `interview-prep-${interviewData.company}.json`;
+    const exportFileDefaultName = `interview-prep-${interviewData.company}-${Date.now()}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -140,11 +100,73 @@ const InterviewResult = () => {
     linkElement.click();
   };
 
+  // Loading state
+  if (loading && !interviewData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Loader2 className="animate-spin text-blue-600" size={48} />
+        <p className="text-gray-600">Loading interview preparation...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !interviewData) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <div className="text-center py-8">
+            <div className="text-red-600 mb-4">
+              <Code size={48} className="mx-auto" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Failed to Load Interview Prep</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => navigate('/interview')} variant="primary">
+                <ArrowLeft size={20} />
+                Back to Interview Prep
+              </Button>
+              <Button onClick={() => window.location.reload()} variant="secondary">
+                Retry
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // No data state
+  if (!interviewData) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <div className="text-center py-8">
+            <p className="text-gray-600">No interview data found.</p>
+            <Button onClick={() => navigate('/interview')} variant="primary" className="mt-4">
+              <ArrowLeft size={20} />
+              Create New Interview Prep
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
+          <Button 
+            onClick={() => navigate('/interview')} 
+            variant="outline" 
+            size="sm"
+            className="mb-2"
+          >
+            <ArrowLeft size={16} />
+            Back
+          </Button>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             Interview Preparation: {interviewData.company}
           </h1>
@@ -154,7 +176,7 @@ const InterviewResult = () => {
         </div>
         <Button onClick={handleExport} variant="outline">
           <Download size={20} />
-          Export PDF
+          Export JSON
         </Button>
       </div>
 

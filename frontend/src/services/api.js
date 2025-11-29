@@ -99,20 +99,32 @@ export const apiUtils = {
     return api.post(endpoint, formData, config);
   },
 
-  // Handle polling for long-running operations
-  pollStatus: async (endpoint, interval = 2000, maxAttempts = 30) => {
+  // Handle polling for long-running operations with progress tracking
+  pollStatus: async (endpoint, interval = 2000, maxAttempts = 30, onProgress = null) => {
     let attempts = 0;
     
     return new Promise((resolve, reject) => {
       const poll = setInterval(async () => {
         attempts++;
         
+        // Calculate progress
+        const progress = Math.min(90, (attempts / maxAttempts) * 90);
+        if (onProgress) {
+          onProgress(progress, `Processing... (${attempts}/${maxAttempts})`);
+        }
+        
         try {
           const response = await api.get(endpoint);
-          const { status, data } = response.data;
+          const { status, data, progress: apiProgress } = response.data;
+          
+          // Use API progress if available
+          if (apiProgress && onProgress) {
+            onProgress(apiProgress.percentage, apiProgress.message);
+          }
           
           if (status === 'completed') {
             clearInterval(poll);
+            if (onProgress) onProgress(100, 'Complete!');
             resolve(data);
           } else if (status === 'failed') {
             clearInterval(poll);
