@@ -6,3 +6,11 @@
  # 2GPT link : 
   *https://chatgpt.com/g/g-p-692a8ee74214819195f6d26ce49213cb-hackathon/project*
   
+LLMs we are using:
+Chatgpt
+Cursor
+Claude
+Deepseek
+Bolt
+Base44
+vercel v0
