@@ -13,3 +13,7 @@ Deepseek
 Bolt
 Base44
 vercel v0
+
+
+
+MONGO_URI= mongodb+srv://zainabraza1960_db_user:VB418BNTMigQ7Acu@cluster0.ilyvaa8.mongodb.net/?appName=Cluster0
