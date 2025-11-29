@@ -1,8 +1,5 @@
 import api from './api';
 
-// MOCK MODE - Use mock data only if backend is not available
-const USE_MOCK_DATA = !import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_USE_MOCK === 'true';
-
 // Simple cache for performance (24 hour TTL)
 const cache = new Map();
 const CACHE_TTL = 24 * 60 * 60 * 1000;
@@ -22,22 +19,6 @@ const researchService = {
     if (isCacheValid(cacheKey)) {
       console.log('✅ Using cached company research');
       return cache.get(cacheKey).data;
-    }
-    
-    if (USE_MOCK_DATA) {
-      // Fallback mock data (should not be used if backend is available)
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const fallback = {
-        company: companyName,
-        summary: `${companyName} is a technology company.`,
-        interviewProcess: ['Phone screen', 'Technical interview', 'Final round'],
-        commonQuestions: ['Why this company?'],
-        techStack: [],
-        culture: 'Innovation-focused',
-        tips: ['Research the company'],
-      };
-      cache.set(cacheKey, { data: fallback, timestamp: Date.now() });
-      return fallback;
     }
     
     try {
@@ -63,18 +44,6 @@ const researchService = {
       return cache.get(cacheKey).data;
     }
     
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      const fallback = {
-        role: role,
-        keyTopics: ['Technical Skills'],
-        difficulty: 'medium',
-        focusAreas: ['Problem-solving'],
-      };
-      cache.set(cacheKey, { data: fallback, timestamp: Date.now() });
-      return fallback;
-    }
-    
     try {
       const response = await api.get(`/research/role/${encodeURIComponent(role)}`);
       const data = response.data?.data || response.data;
@@ -96,18 +65,6 @@ const researchService = {
       return cache.get(cacheKey).data;
     }
     
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      const fallback = {
-        industry: industry,
-        trends: ['Digital transformation'],
-        skills: ['Technical skills'],
-        growth: 'Medium',
-      };
-      cache.set(cacheKey, { data: fallback, timestamp: Date.now() });
-      return fallback;
-    }
-    
     try {
       const response = await api.get(`/research/industry/${encodeURIComponent(industry)}`);
       const data = response.data?.data || response.data;
@@ -120,27 +77,6 @@ const researchService = {
 
   // Get deep research (company + role) from backend
   deepResearch: async (companyName, role) => {
-    if (USE_MOCK_DATA) {
-      // Fallback: call individual services
-      const [company, roleData] = await Promise.all([
-        researchService.researchCompany(companyName),
-        researchService.researchRole(role),
-      ]);
-      
-      return {
-        company,
-        role: roleData,
-        combined: {
-          keyFocusAreas: [...(roleData.focusAreas || []), ...(company.techStack || []).slice(0, 3)],
-          interviewStrategy: {
-            technical: roleData.keyTopics || [],
-            behavioral: company.values || [],
-            systemDesign: [],
-          },
-        },
-      };
-    }
-    
     try {
       const response = await api.get('/research/deep', {
         params: { companyName, role }

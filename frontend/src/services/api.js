@@ -2,7 +2,6 @@ import axios from 'axios';
 
 // Base API configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-const USE_MOCK_DATA = !import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_USE_MOCK === 'true';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -11,21 +10,6 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
-
-// Mock mode interceptor - returns mock responses when backend is unavailable
-if (USE_MOCK_DATA) {
-  api.interceptors.request.use(
-    (config) => {
-      // In mock mode, we'll let the service layer handle it
-      // This interceptor just ensures we don't make actual API calls
-      console.log('🔵 Mock mode: Request intercepted', config.url);
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
-    }
-  );
-}
 
 // Request interceptor to add auth token
 api.interceptors.request.use(

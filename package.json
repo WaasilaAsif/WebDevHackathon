@@ -1,6 +1,5 @@
 {
   "dependencies": {
-<<<<<<< HEAD
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
@@ -8,8 +7,5 @@
     "multer": "^2.0.2",
     "pdf-parse": "^2.4.5",
     "python-shell": "^5.0.0"
-=======
-    "cors": "^2.8.5"
->>>>>>> origin/waasila-branch
   }
 }

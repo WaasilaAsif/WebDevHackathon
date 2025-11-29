@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import https from 'https';
 import Resume from "../models/Resume.js";
 import User from "../models/User.js";
@@ -38,9 +37,7 @@ const parseResumeAPI = async (fileBuffer) => {
   });
 };
 
-// Rule-based entity extraction (same as your previous code)
-const extractEntitiesRuleBased = (text) => { /* ...code from previous snippet... */ };
-const inferRolesAndDomains = (skills, text) => { /* ...code from previous snippet... */ };
+// Note: Using APILayer parsed data directly, no need for additional extraction
 
 // Backend route
 export const uploadResume = async (req, res) => {
@@ -53,44 +50,88 @@ export const uploadResume = async (req, res) => {
     const parsedResume = await parseResumeAPI(req.file.buffer);
     console.log("✅ Parsed resume data:", parsedResume);
 
-    // 2️⃣ Rule-based enrichment
+    // 2️⃣ Extract skills from parsed resume
     const textContent = parsedResume.text || ""; // APILayer usually returns text
-    const nerEntities = extractEntitiesRuleBased(textContent);
-    const { domains, recommendedRoles, seniority } = inferRolesAndDomains(nerEntities.skills, textContent);
+    
+    // Extract skills from APILayer response - handle different formats
+    let skillsArray = [];
+    if (parsedResume.skills && Array.isArray(parsedResume.skills)) {
+      // If skills are already an array of strings
+      skillsArray = parsedResume.skills.map(skill => ({
+        name: typeof skill === 'string' ? skill : skill.name || skill,
+        proficiency: 'intermediate',
+        confidenceScore: 0.8
+      }));
+    } else if (parsedResume.skills && typeof parsedResume.skills === 'object') {
+      // If skills is an object, convert to array
+      skillsArray = Object.keys(parsedResume.skills).map(skill => ({
+        name: skill,
+        proficiency: 'intermediate',
+        confidenceScore: 0.8
+      }));
+    }
 
-    const aiParsed = {
-      skills: nerEntities.skills,
-      topSkills: nerEntities.skills.sort((a,b)=>b.score-a.score).slice(0,5),
-      recommendedRoles,
-      technicalDomains: domains,
-      seniority
-    };
-    console.log("✅ Enriched profile:", aiParsed);
+    // Extract experience from parsed resume
+    const experienceArray = (parsedResume.experience || []).map(exp => ({
+      company: exp.organization || exp.company || '',
+      position: exp.title || exp.position || '',
+      startDate: exp.dates?.[0] || exp.startDate || '',
+      endDate: exp.dates?.[1] || exp.endDate || '',
+      duration: '',
+      description: exp.description || '',
+      techUsed: []
+    }));
 
-    // 3️⃣ Save in MongoDB
+    // Extract education from parsed resume
+    const educationArray = (parsedResume.education || []).map(edu => ({
+      degree: edu.degree || '',
+      institution: edu.institution || edu.organization || '',
+      fieldOfStudy: edu.field || edu.fieldOfStudy || '',
+      startYear: edu.startYear || null,
+      endYear: edu.endYear || null,
+      gpa: edu.gpa || null
+    }));
+
+    // Generate insights
+    const topSkills = skillsArray.slice(0, 5).map(s => s.name);
+    const recommendedRoles = ['Software Developer', 'Full Stack Developer']; // Default roles
+    const primaryDomains = ['Web Development', 'Software Engineering']; // Default domains
+
+    console.log("✅ Processed skills:", skillsArray.length);
+
+    // 3️⃣ Save in MongoDB with correct schema structure
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, error: "User not authenticated" });
+    }
+
     const resume = await Resume.create({
-      userId: req.user?._id || null,
-      originalFilename: req.file.originalname,
-      fileSize: req.file.size,
+      userId: req.user._id,
+      originalFileUrl: null, // Can be updated if file is stored
       extractedText: textContent,
-      nerEntities,
-      parsedData: aiParsed,
-      metadata: { processedAt: new Date() }
+      parsed: {
+        skills: skillsArray,
+        experience: experienceArray,
+        education: educationArray,
+        projects: []
+      },
+      insights: {
+        primaryDomains,
+        skillStrengths: topSkills,
+        missingSkills: [],
+        recommendedRoles
+      }
     });
 
-    // 4️⃣ Update user's profile if user exists
-    if (req.user?._id) {
-      await User.findByIdAndUpdate(req.user._id, {
-        resumeProfile: {
-          skills: aiParsed.skills.map(s => s.name),
-          topSkills: aiParsed.topSkills.map(s => s.name),
-          recommendedRoles: aiParsed.recommendedRoles,
-          technicalDomains: aiParsed.technicalDomains,
-          seniority
-        },
-        $addToSet: { resumes: resume._id }
-      });
-    }
+    // 4️⃣ Update user's profile
+    await User.findByIdAndUpdate(req.user._id, {
+      resumeProfile: {
+        skills: skillsArray.map(s => s.name),
+        topSkills: topSkills,
+        recommendedRoles: recommendedRoles,
+        technicalDomains: primaryDomains,
+        experienceYears: experienceArray.length
+      }
+    });
 
     res.json({
       success: true,
@@ -98,8 +139,8 @@ export const uploadResume = async (req, res) => {
       data: {
         resumeId: resume._id,
         parsedResume,
-        nerEntities,
-        aiParsed
+        parsed: resume.parsed,
+        insights: resume.insights
       }
     });
 
@@ -108,73 +149,3 @@ export const uploadResume = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
-
-
-
-=======
-import Resume from "../models/Resume.js";
-import User from "../models/User.js";
-import pdfParse from "pdf-parse";
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-export const uploadResume = async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "No PDF uploaded" });
-
-    // 1️⃣ Extract PDF text
-    const { text: extractedText } = await pdfParse(req.file.buffer);
-
-    // 2️⃣ AI Resume Parsing
-    const prompt = `
-Extract the following from this resume:
-- Skills with proficiency levels (Beginner/Intermediate/Advanced)
-- Work experience with company, position, duration, tech used
-- Education (degree, institution, field, GPA)
-- Projects (name, description, tech stack, link)
-- Technical domains and skill strengths
-- Suggested missing skills and recommended roles
-Return JSON only.
-Resume Text:
-${extractedText}
-`;
-
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }]
-    });
-
-    const parsedJSON = JSON.parse(aiResponse.choices[0].message.content);
-
-    // 3️⃣ Save Resume
-    const resume = await Resume.create({
-      userId: req.user._id,
-      extractedText,
-      parsed: parsedJSON,
-      insights: {
-        primaryDomains: parsedJSON.primaryDomains || [],
-        skillStrengths: parsedJSON.skillStrengths || [],
-        missingSkills: parsedJSON.missingSkills || [],
-        recommendedRoles: parsedJSON.recommendedRoles || []
-      }
-    });
-
-    // 4️⃣ Update User Profile
-    await User.findByIdAndUpdate(req.user._id, {
-      resumeProfile: {
-        skills: parsedJSON.skills.map(s => s.name),
-        topSkills: parsedJSON.skillStrengths,
-        recommendedRoles: parsedJSON.recommendedRoles,
-        technicalDomains: parsedJSON.primaryDomains
-      }
-    });
-
-    res.json({ message: "Resume processed with AI successfully", resume });
-
-  } catch (err) {
-    console.error("AI Resume Error:", err);
-    res.status(500).json({ error: "Resume AI processing failed" });
-  }
-};
->>>>>>> origin/waasila-branch

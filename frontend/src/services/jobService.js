@@ -1,272 +1,265 @@
 import api from './api';
 
-// MOCK MODE
-const USE_MOCK_DATA = !import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_USE_MOCK === 'true';
-
-// Mock data storage
-const mockStorage = {
-  jobs: [],
-  savedJobs: [],
-  appliedJobs: [],
-};
-
-// Generate mock jobs
-const generateMockJobs = () => {
-  if (mockStorage.jobs.length === 0) {
-    mockStorage.jobs = [
-      {
-        id: 'job_1',
-        title: 'Senior Frontend Developer',
-        company: 'TechCorp Inc.',
-        location: 'Remote',
-        remote: true,
-        salary: { min: 120000, max: 160000, currency: 'USD' },
-        description: 'We are looking for an experienced frontend developer to join our team...',
-        requirements: ['React', 'TypeScript', 'Node.js', 'AWS'],
-        technologies: ['React', 'TypeScript', 'JavaScript', 'Node.js', 'AWS'],
-        experienceLevel: 'senior',
-        postedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        source: 'LinkedIn',
-        url: 'https://linkedin.com/jobs/view/123456',
-        matchScore: 92,
-        matchReasons: ['Strong React experience', 'TypeScript expertise', 'Node.js background'],
-        alignedSkills: ['React', 'TypeScript', 'JavaScript'],
-        missingSkills: ['AWS Certification']
-      },
-      {
-        id: 'job_2',
-        title: 'Full Stack Engineer',
-        company: 'StartupXYZ',
-        location: 'New York, NY',
-        remote: false,
-        salary: { min: 100000, max: 140000, currency: 'USD' },
-        description: 'Join our fast-growing startup as a full stack engineer...',
-        requirements: ['React', 'Node.js', 'MongoDB', 'Docker'],
-        technologies: ['React', 'Node.js', 'MongoDB', 'Docker', 'Kubernetes'],
-        experienceLevel: 'mid',
-        postedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        source: 'Indeed',
-        url: 'https://indeed.com/job/789012',
-        matchScore: 85,
-        matchReasons: ['Full-stack background', 'React and Node.js experience'],
-        alignedSkills: ['React', 'Node.js', 'JavaScript'],
-        missingSkills: ['Docker', 'Kubernetes']
-      },
-      {
-        id: 'job_3',
-        title: 'Python Developer',
-        company: 'DataTech Solutions',
-        location: 'San Francisco, CA',
-        remote: true,
-        salary: { min: 110000, max: 150000, currency: 'USD' },
-        description: 'Looking for a Python developer with data science experience...',
-        requirements: ['Python', 'SQL', 'Machine Learning', 'AWS'],
-        technologies: ['Python', 'SQL', 'Machine Learning', 'AWS', 'Docker'],
-        experienceLevel: 'mid',
-        postedDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        source: 'Glassdoor',
-        url: 'https://glassdoor.com/job/345678',
-        matchScore: 78,
-        matchReasons: ['Python experience', 'SQL knowledge'],
-        alignedSkills: ['Python', 'SQL'],
-        missingSkills: ['Machine Learning', 'AWS']
-      }
-    ];
+// Helper to get current user ID from localStorage
+const getCurrentUserId = () => {
+  try {
+    const user = localStorage.getItem('user');
+    if (user) {
+      const userData = JSON.parse(user);
+      return userData.id;
+    }
+  } catch (error) {
+    console.error('Error getting user ID:', error);
   }
-  return mockStorage.jobs;
+  return null;
 };
 
 const jobService = {
   // Get matched jobs for user
   getMatchedJobs: async (filters = {}) => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      const jobs = generateMockJobs();
+    try {
+      const userId = getCurrentUserId();
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
+      const response = await api.get(`/match/match/${userId}`);
+      const matches = response.data.matches || [];
+      
+      // Transform backend response to match frontend expectations
       return {
-        jobs: jobs.map(job => ({
-          ...job,
-          compatibilityScore: job.matchScore,
-          recommendations: `Based on your skills, you're a strong match for this ${job.experienceLevel} level position.`
+        jobs: matches.map(job => ({
+          id: job._id || job.id,
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          remote: job.remote || false,
+          salary: job.salary,
+          description: job.description,
+          requirements: job.requirements || [],
+          technologies: job.technologies || job.skills || [],
+          experienceLevel: job.experienceLevel,
+          postedDate: job.postedDate || job.createdAt,
+          source: job.source,
+          url: job.url || job.link,
+          matchScore: Math.round((job.relevanceScore || 0) * 100),
+          compatibilityScore: Math.round((job.relevanceScore || 0) * 100),
+          matchReasons: job.matchReasons || [],
+          alignedSkills: job.alignedSkills || [],
+          missingSkills: job.missingSkills || []
         })),
-        total: jobs.length,
+        total: response.data.matchCount || matches.length,
         filters: filters
       };
-    }
-    
-    try {
-      const response = await api.post('/jobs/matches', filters);
-      return response.data;
     } catch (error) {
+      console.error('Error fetching matched jobs:', error);
       throw error;
     }
   },
 
-  // Get job details
+  // Get job details - fetch from all jobs
   getJobDetails: async (jobId) => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const jobs = generateMockJobs();
-      const job = jobs.find(j => j.id === jobId);
-      if (job) {
-        return job;
-      }
-      throw new Error('Job not found');
-    }
-    
     try {
-      const response = await api.get(`/jobs/${jobId}`);
-      return response.data;
+      // Get all jobs and find the one with matching ID
+      const response = await api.get('/jobs/all');
+      const jobs = response.data || [];
+      const job = jobs.find(j => (j._id || j.id) === jobId);
+      
+      if (!job) {
+        throw new Error('Job not found');
+      }
+      
+      return {
+        id: job._id || job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        remote: job.remote || false,
+        salary: job.salary,
+        description: job.description,
+        requirements: job.requirements || [],
+        technologies: job.technologies || job.skills || [],
+        experienceLevel: job.experienceLevel,
+        postedDate: job.postedDate || job.createdAt,
+        source: job.source,
+        url: job.url || job.link
+      };
     } catch (error) {
+      console.error('Error fetching job details:', error);
       throw error;
     }
   },
 
   // Trigger job discovery (scraping)
-  discoverJobs: async () => {
+  discoverJobs: async (searchTerm = '') => {
     try {
-      const response = await api.post('/jobs/discover');
+      const response = await api.get(`/jobs/scrape${searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : ''}`);
       return response.data;
     } catch (error) {
+      console.error('Error discovering jobs:', error);
       throw error;
     }
   },
 
-  // Get job discovery status
+  // Get job discovery status - not implemented in backend yet
   getDiscoveryStatus: async (discoveryId) => {
     try {
-      const response = await api.get(`/jobs/discover/${discoveryId}/status`);
-      return response.data;
+      // Backend doesn't have this endpoint yet, return a mock response
+      return {
+        status: 'completed',
+        message: 'Job discovery completed'
+      };
     } catch (error) {
       throw error;
     }
   },
 
-  // Save a job for later
+  // Save a job for later - not implemented in backend yet
   saveJob: async (jobId) => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const jobs = generateMockJobs();
-      const job = jobs.find(j => j.id === jobId);
-      if (job && !mockStorage.savedJobs.includes(jobId)) {
-        mockStorage.savedJobs.push(jobId);
+    try {
+      // Store in localStorage as fallback until backend implements this
+      const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+      if (!savedJobs.includes(jobId)) {
+        savedJobs.push(jobId);
+        localStorage.setItem('savedJobs', JSON.stringify(savedJobs));
       }
       return { success: true, jobId };
-    }
-    
-    try {
-      const response = await api.post(`/jobs/${jobId}/save`);
-      return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  // Remove saved job
+  // Remove saved job - not implemented in backend yet
   unsaveJob: async (jobId) => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      mockStorage.savedJobs = mockStorage.savedJobs.filter(id => id !== jobId);
+    try {
+      const savedJobs = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+      const updated = savedJobs.filter(id => id !== jobId);
+      localStorage.setItem('savedJobs', JSON.stringify(updated));
       return { success: true, jobId };
-    }
-    
-    try {
-      const response = await api.delete(`/jobs/${jobId}/save`);
-      return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  // Get saved jobs
+  // Get saved jobs - not implemented in backend yet
   getSavedJobs: async () => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const jobs = generateMockJobs();
-      return {
-        jobs: jobs.filter(j => mockStorage.savedJobs.includes(j.id)),
-        total: mockStorage.savedJobs.length
-      };
-    }
-    
     try {
-      const response = await api.get('/jobs/saved');
-      return response.data;
+      const savedJobIds = JSON.parse(localStorage.getItem('savedJobs') || '[]');
+      const allJobsResponse = await api.get('/jobs/all');
+      const allJobs = allJobsResponse.data || [];
+      
+      const savedJobs = allJobs
+        .filter(job => savedJobIds.includes(job._id || job.id))
+        .map(job => ({
+          id: job._id || job.id,
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          remote: job.remote || false,
+          salary: job.salary,
+          description: job.description,
+          requirements: job.requirements || [],
+          technologies: job.technologies || job.skills || [],
+          experienceLevel: job.experienceLevel,
+          postedDate: job.postedDate || job.createdAt,
+          source: job.source,
+          url: job.url || job.link
+        }));
+      
+      return {
+        jobs: savedJobs,
+        total: savedJobs.length
+      };
     } catch (error) {
-      throw error;
+      console.error('Error fetching saved jobs:', error);
+      return { jobs: [], total: 0 };
     }
   },
 
-  // Mark job as applied
+  // Mark job as applied - not implemented in backend yet
   markAsApplied: async (jobId, notes = '') => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const jobs = generateMockJobs();
-      const job = jobs.find(j => j.id === jobId);
-      if (job && !mockStorage.appliedJobs.includes(jobId)) {
-        mockStorage.appliedJobs.push(jobId);
+    try {
+      const appliedJobs = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
+      if (!appliedJobs.find(app => app.jobId === jobId)) {
+        appliedJobs.push({
+          jobId,
+          notes,
+          appliedAt: new Date().toISOString(),
+          status: 'pending'
+        });
+        localStorage.setItem('appliedJobs', JSON.stringify(appliedJobs));
       }
       return { success: true, jobId, notes, appliedAt: new Date().toISOString() };
-    }
-    
-    try {
-      const response = await api.post(`/jobs/${jobId}/apply`, { notes });
-      return response.data;
     } catch (error) {
       throw error;
     }
   },
 
-  // Get application history
+  // Get application history - not implemented in backend yet
   getApplicationHistory: async () => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const jobs = generateMockJobs();
-      return {
-        applications: jobs
-          .filter(j => mockStorage.appliedJobs.includes(j.id))
-          .map(job => ({
-            jobId: job.id,
-            jobTitle: job.title,
-            company: job.company,
-            appliedAt: new Date().toISOString(),
-            status: 'pending'
-          })),
-        total: mockStorage.appliedJobs.length
-      };
-    }
-    
     try {
-      const response = await api.get('/jobs/applications');
-      return response.data;
+      const appliedJobs = JSON.parse(localStorage.getItem('appliedJobs') || '[]');
+      const allJobsResponse = await api.get('/jobs/all');
+      const allJobs = allJobsResponse.data || [];
+      
+      const applications = appliedJobs.map(app => {
+        const job = allJobs.find(j => (j._id || j.id) === app.jobId);
+        return {
+          jobId: app.jobId,
+          jobTitle: job?.title || 'Unknown',
+          company: job?.company || 'Unknown',
+          appliedAt: app.appliedAt,
+          status: app.status || 'pending',
+          notes: app.notes
+        };
+      });
+      
+      return {
+        applications,
+        total: applications.length
+      };
     } catch (error) {
-      throw error;
+      console.error('Error fetching application history:', error);
+      return { applications: [], total: 0 };
     }
   },
 
   // Get job statistics
   getJobStats: async () => {
-    if (USE_MOCK_DATA) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const jobs = generateMockJobs();
-      return {
-        totalMatched: jobs.length,
-        averageMatchScore: Math.round(jobs.reduce((sum, j) => sum + j.matchScore, 0) / jobs.length),
-        topSkills: ['React', 'JavaScript', 'TypeScript', 'Node.js', 'Python'],
-        experienceLevels: {
-          entry: 0,
-          mid: 2,
-          senior: 1,
-          lead: 0
-        },
-        remoteJobs: jobs.filter(j => j.remote).length,
-        totalJobs: jobs.length
-      };
-    }
-    
     try {
-      const response = await api.get('/jobs/stats');
-      return response.data;
+      const userId = getCurrentUserId();
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
+      const response = await api.get(`/match/match/${userId}`);
+      const matches = response.data.matches || [];
+      
+      const experienceLevels = matches.reduce((acc, job) => {
+        const level = job.experienceLevel || 'unknown';
+        acc[level] = (acc[level] || 0) + 1;
+        return acc;
+      }, {});
+      
+      const avgScore = matches.length > 0
+        ? Math.round(matches.reduce((sum, j) => sum + (j.relevanceScore || 0) * 100, 0) / matches.length)
+        : 0;
+      
+      return {
+        totalMatched: matches.length,
+        averageMatchScore: avgScore,
+        topSkills: [], // Could be extracted from resume
+        experienceLevels: {
+          entry: experienceLevels.entry || 0,
+          mid: experienceLevels.mid || 0,
+          senior: experienceLevels.senior || 0,
+          lead: experienceLevels.lead || 0
+        },
+        remoteJobs: matches.filter(j => j.remote).length,
+        totalJobs: matches.length
+      };
     } catch (error) {
+      console.error('Error fetching job stats:', error);
       throw error;
     }
   },

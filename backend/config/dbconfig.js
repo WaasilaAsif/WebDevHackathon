@@ -2,13 +2,9 @@ import mongoose from "mongoose";
 
 export const connectDB = async () => {
   try {
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/waasila-branch
+    // Removed deprecated options: useNewUrlParser and useUnifiedTopology
+    // These are no longer needed in Mongoose 6+
     const conn = await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       // Only for Atlas/self-signed certs in development
       tls: process.env.MONGO_URI?.startsWith("mongodb+srv") ? true : false,
       tlsAllowInvalidCertificates: process.env.NODE_ENV !== "production",
@@ -17,10 +13,7 @@ export const connectDB = async () => {
     console.log(`MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
     console.error("Error connecting DB:", error);
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/waasila-branch
     process.exit(1);
   }
 };

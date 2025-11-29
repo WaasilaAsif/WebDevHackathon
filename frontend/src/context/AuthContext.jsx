@@ -1,17 +1,7 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
+import api from '../services/api';
 
 export const AuthContext = createContext();
-
-// MOCK USER DATA - Remove this when backend is ready
-const MOCK_USERS = [
-  {
-    id: '1',
-    email: 'test@test.com',
-    password: 'password123',
-    fullName: 'Test User',
-    profileComplete: true
-  }
-];
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -23,124 +13,140 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const checkAuth = () => {
+  const checkAuth = async () => {
     const token = localStorage.getItem('authToken');
-    const storedUser = localStorage.getItem('user');
-
-    if (token && storedUser) {
-      console.log('✅ User found in localStorage');
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    } else {
-      console.log('❌ No user in localStorage');
+    
+    if (!token) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    try {
+      // Verify token with backend
+      const response = await api.get('/auth/me');
+      if (response.data && response.data.user) {
+        const userData = {
+          id: response.data.user._id || response.data.user.id,
+          email: response.data.user.email,
+          fullName: response.data.user.fullName,
+          profilePic: response.data.user.profilePic,
+          profileComplete: response.data.user.profileComplete || response.data.user.isVerified || false
+        };
+        setUser(userData);
+        setIsAuthenticated(true);
+        localStorage.setItem('user', JSON.stringify(userData));
+        console.log('✅ User authenticated:', userData);
+      }
+    } catch (error) {
+      console.error('❌ Auth check failed:', error);
+      // Clear invalid token
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const login = async (email, password) => {
     try {
-      console.log('🔵 Mock login attempt:', email);
+      console.log('🔵 Login attempt:', email);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Find mock user
-      const mockUser = MOCK_USERS.find(
-        u => u.email === email && u.password === password
-      );
-
-      if (!mockUser) {
-        console.log('❌ Mock login failed: Invalid credentials');
-        return { 
-          success: false, 
-          error: 'Invalid email or password' 
+      const response = await api.post('/auth/login', { email, password });
+      
+      if (response.data && response.data.token && response.data.user) {
+        const token = response.data.token;
+        const userData = {
+          id: response.data.user._id || response.data.user.id,
+          email: response.data.user.email,
+          fullName: response.data.user.fullName,
+          profilePic: response.data.user.profilePic,
+          profileComplete: response.data.user.profileComplete || response.data.user.isVerified || false
         };
+
+        // Save to localStorage
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // Update state
+        setUser(userData);
+        setIsAuthenticated(true);
+
+        console.log('✅ Login successful:', userData);
+
+        return { success: true, user: userData };
       }
-
-      // Create mock token
-      const token = 'mock-jwt-token-' + Date.now();
-      const userData = {
-        id: mockUser.id,
-        email: mockUser.email,
-        fullName: mockUser.fullName,
-        profileComplete: mockUser.profileComplete
-      };
-
-      // Save to localStorage
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(userData));
       
-      // Update state
-      setUser(userData);
-      setIsAuthenticated(true);
-
-      console.log('✅ Mock login successful:', userData);
-
-      return { success: true, user: userData };
+      throw new Error('Invalid response from server');
     } catch (error) {
-      console.error('❌ Mock login error:', error);
+      console.error('❌ Login error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
       return { 
         success: false, 
-        error: 'Login failed' 
+        error: errorMessage 
       };
     }
   };
 
   const signup = async (userData) => {
     try {
-      console.log('🔵 Mock signup attempt:', userData.email);
+      console.log('🔵 Signup attempt:', userData.email);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await api.post('/auth/signup', {
+        fullName: userData.fullName,
+        email: userData.email,
+        password: userData.password
+      });
+      
+      if (response.data && response.data.token && response.data.user) {
+        const token = response.data.token;
+        const userDataFromServer = {
+          id: response.data.user._id || response.data.user.id,
+          email: response.data.user.email,
+          fullName: response.data.user.fullName,
+          profilePic: response.data.user.profilePic,
+          profileComplete: response.data.user.profileComplete || false
+        };
 
-      // Check if user already exists
-      const existingUser = MOCK_USERS.find(u => u.email === userData.email);
-      if (existingUser) {
-        console.log('❌ Mock signup failed: User already exists');
+        // Save to localStorage
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('user', JSON.stringify(userDataFromServer));
+        
+        // Update state
+        setUser(userDataFromServer);
+        setIsAuthenticated(true);
+
+        console.log('✅ Signup successful:', userDataFromServer);
         return { 
-          success: false, 
-          error: 'User already exists' 
+          success: true, 
+          user: userDataFromServer,
+          message: response.data.message || 'Account created successfully'
         };
       }
-
-      // Create new mock user
-      const newUser = {
-        id: Date.now().toString(),
-        email: userData.email,
-        fullName: userData.fullName || userData.email.split('@')[0],
-        profileComplete: false // New users need onboarding
-      };
-
-      // Create mock token
-      const token = 'mock-jwt-token-' + Date.now();
-
-      // Save to localStorage
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify(newUser));
       
-      // Update state
-      setUser(newUser);
-      setIsAuthenticated(true);
-
-      console.log('✅ Mock signup successful:', newUser);
-
-      return { success: true, user: newUser };
+      throw new Error('Invalid response from server');
     } catch (error) {
-      console.error('❌ Mock signup error:', error);
+      console.error('❌ Signup error:', error);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Signup failed';
       return { 
         success: false, 
-        error: 'Signup failed' 
+        error: errorMessage 
       };
     }
   };
 
-  const logout = useCallback(() => {
-    console.log('🔵 Logging out...');
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    setUser(null);
-    setIsAuthenticated(false);
-    console.log('✅ Logged out');
+  const logout = useCallback(async () => {
+    try {
+      console.log('🔵 Logging out...');
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout API error:', error);
+    } finally {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      setUser(null);
+      setIsAuthenticated(false);
+      console.log('✅ Logged out');
+    }
   }, []);
 
   const updateUser = (userData) => {
@@ -154,9 +160,7 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🔵 Completing onboarding...');
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
+      // Update local user data
       const updatedUser = {
         ...user,
         ...onboardingData,
