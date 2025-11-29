@@ -14,6 +14,7 @@ Bolt
 Base44
 vercel v0
 
+<<<<<<< HEAD
 src/
 │
 ├── App.jsx
@@ -82,3 +83,5 @@ src/
     ├── profileTypes.js
     ├── resumeTypes.js
     └── jobTypes.js
+=======
+>>>>>>> 0ec7e085653376a48de0971488fae007b04090ff
