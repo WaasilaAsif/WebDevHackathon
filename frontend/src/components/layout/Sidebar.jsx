@@ -63,8 +63,11 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         <div className="p-4 border-t border-gray-700">
           <button
             onClick={() => {
-              // Developer B will implement logout logic
-              console.log('Logout clicked');
+              // Clear any stored auth data
+              localStorage.removeItem('token');
+              sessionStorage.clear();
+              // Redirect to login
+              window.location.href = '/login';
             }}
             className="flex items-center gap-3 w-full px-4 py-3 text-gray-300 hover:bg-red-600 hover:text-white rounded-lg transition-all duration-200"
           >

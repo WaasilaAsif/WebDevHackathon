@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Bell, User } from 'lucide-react';
+import { Menu, User } from 'lucide-react';
 
 const Header = ({ toggleSidebar, userName = 'Guest' }) => {
   return (
@@ -21,19 +21,8 @@ const Header = ({ toggleSidebar, userName = 'Guest' }) => {
           </h2>
         </div>
 
-        {/* Right: Notifications and User */}
+        {/* Right: User Profile */}
         <div className="flex items-center gap-4">
-          {/* Notifications */}
-          <button
-            className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell size={20} className="text-gray-700" />
-            {/* Notification badge */}
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-
-          {/* User Profile */}
           <div className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <User size={18} className="text-white" />
