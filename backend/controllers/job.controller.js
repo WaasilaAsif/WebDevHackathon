@@ -1,0 +1,54 @@
+import Job from "../models/Job.js";
+import Resume from "../models/Resume.js";
+
+// Compute skill-based match percentage
+const computeSkillScore = (jobSkills, userSkills) => {
+  if (!jobSkills || jobSkills.length === 0) return 0;
+  const matchedSkills = jobSkills.filter(skill =>
+    userSkills.includes(skill.toLowerCase())
+  );
+  return (matchedSkills.length / jobSkills.length);
+};
+
+// Main function to fetch ranked jobs for a user
+export const getMatchedJobs = async (userId) => {
+  // 1️⃣ Fetch user resume
+  const resume = await Resume.findOne({ userId });
+  if (!resume) throw new Error("Resume not found for this user");
+
+  const userSkills = resume.parsed.skills.map(s => s.name.toLowerCase());
+
+  // 2️⃣ Fetch all jobs from DB
+  const jobs = await Job.find();
+
+  // 3️⃣ Compute relevance score for each job
+  const rankedJobs = jobs.map(job => {
+    const score = computeSkillScore(job.skills, userSkills);
+    return { ...job.toObject(), relevanceScore: score };
+  });
+
+  // 4️⃣ Sort descending by relevance score
+  rankedJobs.sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+  return rankedJobs;
+};
+
+// Export function to get all jobs
+export const getAllJobs = async (req, res) => {
+  try {
+    const jobs = await Job.find();
+    res.status(200).json(jobs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Export function to scrape jobs
+export const scrapeJobs = async (req, res) => {
+  try {
+    // TODO: Implement job scraping logic
+    res.status(200).json({ message: "Job scraping not yet implemented" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
