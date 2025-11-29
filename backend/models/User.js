@@ -57,7 +57,13 @@ const userSchema = new mongoose.Schema({
   passwordResetToken: String,
   passwordResetExpires: Date,
 
+<<<<<<< HEAD
 
+=======
+  /* -------------------------------------------------------
+     🎓 Education & Skills Section
+  ------------------------------------------------------- */
+>>>>>>> origin/waasila-branch
 
   // User's main university
   university: {
@@ -89,6 +95,7 @@ const userSchema = new mongoose.Schema({
     default: [],
   },
 
+<<<<<<< HEAD
 
   resumeProfile: {
   skills: [String],
@@ -97,6 +104,8 @@ const userSchema = new mongoose.Schema({
   recommendedRoles: [String],
   technicalDomains: [String], // e.g. Backend / Mobile / Cloud
 },
+=======
+>>>>>>> origin/waasila-branch
 }, { timestamps: true });
 
 

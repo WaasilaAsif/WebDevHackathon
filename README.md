@@ -1,5 +1,91 @@
 # AI-Powered Resume Analyzer
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+  
+# LLMs we are using:
+Chatgpt
+Cursor
+Claude
+Deepseek
+Bolt
+Base44
+vercel v0
+
+<<<<<<< HEAD
+src/
+│
+├── App.jsx
+├── main.jsx
+├── index.css
+│
+├── assets/
+│   └── react.svg
+│
+├── components/
+│   ├── layout/
+│   │   ├── Sidebar.jsx
+│   │   ├── Header.jsx
+│   │   └── AppShell.jsx
+│   │
+│   ├── upload/
+│   │   └── FileUploader.jsx
+│   │
+│   ├── dashboard/
+│   │   └── SkillChart.jsx
+│   │
+│   ├── jobs/
+│   │   ├── JobCard.jsx
+│   │   └── JobDetailsModal.jsx
+│   │
+│   └── ui/
+│       ├── Button.jsx
+│       ├── Input.jsx
+│       └── Card.jsx
+│
+├── pages/
+│   ├── auth/
+│   │   ├── Login.jsx
+│   │   ├── Signup.jsx
+│   │   └── Onboarding.jsx
+│   │
+│   ├── home/
+│   │   └── Main.jsx           // main dashboard
+│   │
+│   ├── resume/
+│   │   ├── UploadResume.jsx
+│   │   └── ResumeResult.jsx
+│   │
+│   ├── interview/
+│   │   ├── InterviewInput.jsx
+│   │   └── InterviewResult.jsx
+│   │
+│   └── history/
+│       └── History.jsx
+│
+├── hooks/
+│   ├── useAuth.js
+│   ├── useResume.js
+│   └── useInterview.js
+│
+├── context/
+│   └── AuthContext.jsx
+│
+├── services/
+│   ├── api.js                 // axios or fetch wrapper
+│   ├── resumeService.js
+│   ├── jobService.js
+│   └── interviewService.js
+│
+└── types/
+    ├── profileTypes.js
+    ├── resumeTypes.js
+    └── jobTypes.js
+=======
+>>>>>>> 0ec7e085653376a48de0971488fae007b04090ff
+=======
+>>>>>>> origin/waasila-branch
 A full-stack AI-powered resume analysis platform built with the MERN stack (MongoDB, Express.js, React, Node.js) featuring intelligent resume parsing, skill assessment, and role-based access control for job seekers, recruiters, and admins.
 
 ## 📋 Table of Contents
@@ -241,3 +327,7 @@ This is a hackathon project by FAST NUCES students. For any queries, please cont
 **Repository:** WebDevHackathon  
 **Owner:** WaasilaAsif  
 **Branch:** waasila-branch
+<<<<<<< HEAD
+=======
+>>>>>>> 363b609fe8fb9cddad7e423989dfa54eee8bc07b
+>>>>>>> origin/waasila-branch

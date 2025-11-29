@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import express from "express";
 import multer from "multer";
 import { uploadResume } from "../controllers/resume.controller.js";
@@ -12,3 +13,17 @@ const router = express.Router();
 router.post("/upload", upload.single("resume"), uploadResume);
 
 export default router;
+=======
+const express = require("express");
+const router = express.Router();
+const multer = require("multer");
+const { uploadResume } = require("../controllers/resume.controller.js");
+const { protect } = require("../middleware/auth");
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+router.post("/upload", protect, upload.single("resume"), uploadResume);
+
+module.exports = router;
+>>>>>>> origin/waasila-branch
