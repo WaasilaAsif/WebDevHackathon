@@ -9,9 +9,11 @@ const app = express();
 app.use(express.json());
 connectDB();
 app.use(cors());
+import jobRoutes from "./routes/job.routes.js";
+import matchRoutes from "./routes/match.routes.js";
 
-
-
+app.use("/api/jobs", jobRoutes);
+app.use("/api/match", matchRoutes);
 app.use("/api/resume", resumeRoutes);
 app.listen(process.env.PORT || 5000, () => {
   console.log(`Server running on port ${process.env.PORT || 5000}`);
