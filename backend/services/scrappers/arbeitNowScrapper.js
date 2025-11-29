@@ -3,7 +3,7 @@ import { normalizeJob } from "./normalizeJob.js";
 
 export const fetchArbeitNowJobs = async () => {
   try {
-    const res = await axios.get("https://api.arbeitnow.com/api/job-board-api");
+    const res = await axios.get("https://arbeitnow.com/api/job-board-api");
     const jobs = res.data.data || [];
     return jobs.map(job => normalizeJob({
       title: job.title,
