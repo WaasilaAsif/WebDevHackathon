@@ -56,7 +56,7 @@ export async function signup(req, res) {
     const verifyUrl = `${FRONTEND_URL}/auth/verify-email?token=${verificationToken}`;
     await sendEmail({
       to: user.email,
-      subject: "Verify Your Reon Messaging Account",
+      subject: "Verify Your Account",
       title: "Verify Your Account",
       body: `<p>Hi ${user.fullName}, click below to verify your email.</p>`,
       buttonText: "Verify Email",
@@ -114,15 +114,7 @@ export async function verifyEmail(req, res) {
     console.log("✅ User verified successfully");
 
     // Optional: Send welcome email
-    try {
-      await sendEmail({
-        to: user.email,
-        subject: "Welcome to Reon Secure Messaging!",
-        title: "Welcome Aboard",
-        body: `<p>Hi ${user.fullName}, your email has been verified. Enjoy chatting securely!</p>`,
-        buttonText: "Go to Login",
-        buttonLink: "${FRONTEND_URL}/login",
-      });
+   
       console.log("✅ Welcome email sent");
     } catch (emailError) {
       console.error("❌ Failed to send welcome email:", emailError);
@@ -130,11 +122,7 @@ export async function verifyEmail(req, res) {
     }
 
     return res.status(200).json({ message: "Email verified successfully." });
-  } catch (error) {
-    console.error("💥 Verification error:", error);
-    return res.status(500).json({ error: "Internal server error" });
   }
-}
 
 //  LOGIN 
 export async function login(req, res) {
@@ -214,16 +202,6 @@ export async function googleCallback(req, res) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
-  // 4. Send welcome email (optional)
-  await sendEmail({
-    to: req.user.email,
-    subject: "Welcome to Reon Secure Messaging!",
-    title: "Welcome Aboard",
-    body: `<p>Hi ${req.user.fullName}, your email has been verified. Enjoy chatting securely!</p>`,
-    buttonText: "Open App",
-    buttonLink: `${FRONTEND_URL}/chat`,
   });
 
   // -------------------------------
