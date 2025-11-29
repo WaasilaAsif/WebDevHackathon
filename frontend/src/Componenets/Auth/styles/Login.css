@@ -1,0 +1,385 @@
+/* Container for the whole login/register page */
+.s-container {
+    min-height: 100vh; /* Full viewport height */
+    display: flex; /* Use flexbox for centering */
+    align-items: center; /* Vertically center content */
+    justify-content: center; /* Horizontally center content */
+    background: linear-gradient(135deg, #a0a4b8 0%, #816b97 100%); /* Gradient background */
+    padding: 1rem; /* Space around container */
+}
+
+/* Main box holding forms and toggle */
+.box {
+    display: flex; /* Flex layout for children */
+    position: relative; /* For absolute children */
+    width: 100%; /* Full width of parent */
+    max-width: 900px; /* Maximum width */
+    height: 500px; /* Fixed height */
+    background: white; /* White background */
+    border-radius: 20px; /* Rounded corners */
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px; /* Drop shadow */
+    overflow: hidden; /* Hide overflow */
+    transition: all 0.6s ease-in-out; /* Smooth transitions */
+}
+
+/* Toggle box for switching between login/register */
+.toggle-box {
+    position: absolute; /* Positioned inside .box */
+    top: 0; /* Top edge */
+    left: 0; /* Left edge */
+    width: 50%; /* Half the width of .box */
+    height: 100%; /* Full height of .box */
+    background: linear-gradient(135deg, #1a0c9b, #210a7b); /* Gradient background */
+    border-radius: 20px; /* Rounded corners */
+    display: flex; /* Center content */
+    align-items: center; /* Vertically center */
+    justify-content: center; /* Horizontally center */
+    transition: all 0.6s ease-in-out; /* Smooth transitions */
+    z-index: 10; /* On top of other elements */
+}
+
+/* Position toggle-box for login mode */
+.box.login-mode .toggle-box {
+    left: -0%; /* No offset, stays at left */
+}
+
+/* Content inside toggle-box */
+.toggle-content {
+    text-align: center; /* Center text */
+    color: white; /* White text */
+    padding: 2rem; /* Space inside */
+}
+
+/* Heading in toggle-content */
+.toggle-content h3 {
+    font-size: 1.5rem; /* Large font */
+    margin-bottom: 1rem; /* Space below */
+    font-weight: 600; /* Semi-bold */
+}
+
+/* Paragraph in toggle-content */
+.toggle-content p {
+    margin-bottom: 2rem; /* Space below */
+    opacity: 0.9; /* Slightly faded */
+    line-height: 1.5; /* Spacing between lines */
+}
+
+/* Button for toggling forms */
+.toggle-btn {
+    background: transparent; /* No background */
+    border: 2px solid white; /* White border */
+    color: white; /* White text */
+    padding: 0.75rem 2rem; /* Space inside */
+    border-radius: 25px; /* Rounded button */
+    cursor: pointer; /* Pointer on hover */
+    font-weight: 600; /* Semi-bold */
+    transition: all 0.3s ease; /* Smooth transitions */
+    text-transform: uppercase; /* Uppercase text */
+    letter-spacing: 1px; /* Space between letters */
+}
+
+/* Hover effect for toggle button */
+.toggle-btn:hover {
+    background: white; /* White background */
+    color: #1f0c9b; /* Purple text */
+    transform: translateY(-2px); /* Slight lift */
+}
+
+/* Container for forms */
+.form-container {
+    display: flex; /* Flex layout for forms */
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+}
+
+/* Register and login forms */
+.register,
+.login {
+    width: 50%; /* Half the width */
+    display: flex; /* Flex layout */
+    flex-direction: column; /* Stack children vertically */
+    align-items: center; /* Center horizontally */
+    justify-content: center; /* Center vertically */
+    padding: 2rem 1rem; /* Space inside */
+    transition: all 0.6s ease-in-out; /* Smooth transitions */
+    position: relative; /* For positioning */
+}
+
+/* Hide inactive forms */
+.register.inactive,
+.login.inactive {
+    opacity: 0; /* Invisible */
+    pointer-events: none; /* Not clickable */
+}
+
+/* Show active forms */
+.register.active,
+.login.active {
+    opacity: 1; /* Visible */
+    pointer-events: all; /* Clickable */
+}
+.register.active {
+    overflow-y:visible;
+    max-height: 100%;
+    padding-right: 1rem;
+    /* Shrink contents to fit */
+    box-sizing: border-box;
+    transform: scale(0.95);
+}
+
+/* Registration active: show on left, Login active: show on right */
+.box.register-mode .register {
+    transform: translateX(100%); /* Registration stays on left */
+}
+.box.register-mode .login {
+    transform: translateX(100%); /* Login moves out to right */
+}
+
+.box.login-mode .login {
+    transform: translateX(0); /* Login stays on right */
+}
+.box.login-mode .register {
+    transform: translateX(100%); /* Registration moves out to left */
+}
+
+.head {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    font-weight: 700;
+    color: #333;
+    text-align: center;
+}
+
+.info {
+    width: 100%;
+    max-width: 300px;
+    border: 2px solid #e1e5e9;
+    margin: 0.75rem 0;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    outline: none;
+}
+
+.info:hover {
+    background-color: #f1f3f4;
+    border-color: #8a0c9b;
+}
+
+.info:focus {
+    border-color: #0c139b;
+    background-color: white;
+    box-shadow: 0 0 0 3px rgba(138, 12, 155, 0.1);
+}
+
+.btn {
+    background: linear-gradient(135deg, #210c9b, #0a1b7b);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 1rem 0;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    min-width: 150px;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(138, 12, 155, 0.3);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.frgt {
+    color: #0c139b;
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin: 1rem 0;
+    transition: all 0.3s ease;
+}
+
+.frgt:hover {
+    color: #0c0a7b;
+    text-decoration: underline;
+}
+
+.ad-info {
+    margin-top: 1.5rem;
+    color: #666;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0.5rem;
+    }
+    
+    .box {
+        flex-direction: column;
+        height: auto;
+        min-height: 600px;
+        max-width: 400px;
+    }
+    
+    .toggle-box {
+        position: relative;
+        width: 100%;
+        height: 200px;
+        left: 0 !important;
+        border-radius: 20px 20px 0 0;
+    }
+    
+    .form-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .register,
+    .login {
+        width: 100%;
+        transform: none !important;
+        padding: 2rem 1.5rem;
+        justify-content: center;
+        align-self: center;
+
+    }
+    
+    .register.inactive,
+    .login.inactive {
+        display: none;
+    }
+    
+    .toggle-content {
+        padding: 1rem;
+    }
+    
+    .toggle-content h3 {
+        font-size: 1.25rem;
+    }
+    
+    .head {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        color:#0a1b7b
+    }
+    
+    .info {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .box {
+        margin: 0.5rem;
+        border-radius: 15px;
+    }
+    
+    .toggle-box {
+        border-radius: 15px 15px 0 0;
+        height: 150px;
+    }
+    
+    .register,
+    .login {
+        padding: 1.5rem 1rem;
+    }
+    
+    .toggle-content {
+        padding: 0.5rem;
+    }
+    
+    .toggle-content h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .toggle-content p {
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    
+    .toggle-btn {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+    }
+}
+.rinfo {
+    width: 100%;
+    max-height: 20px;
+    max-width: 300px;
+    border: 2px solid #e1e5e9;
+    margin: 0.75rem 0;
+    padding: 1rem;
+    margin-bottom: 0;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    outline: none;
+}
+.rinfo::placeholder{
+    color: #999;
+    font-style:normal; 
+}
+.info::placeholder {
+    color: #999;
+    font-style: normal; 
+}
+.rhead {
+    font-size: 2rem;
+    margin-bottom: -0.5rem;
+    font-weight: 700;
+     color:#0a1b7b;
+    text-align: center;
+}
+.input{
+    color: black;
+    font-size: 1rem;
+}
+#role::placeholder {
+    color: #999;
+    font-style: normal; 
+}
+.rinfo {
+    color: rgb(46, 44, 44);
+}
+.info{
+    color: rgb(46, 44, 44);
+}
+.rinfo #ava {
+  text-align: center; /* centers the filename text */
+  color: black;
+  font-size: 1rem;
+  padding: 8px; /* add padding for spacing */
+  height: 30px;
+  padding-bottom: 1em;;
+}
+#role  {
+  color: #06011f !important; 
+}
+#reg , #log{
+    align-content: center;
+    display: flex;
+    flex-direction: column;
+}
+#ava.rinfo{
+    text-align: center; 
+    color: rgb(98, 94, 94);
+    font-size: 1rem;
+    padding: 8px; 
+    height: 30px;
+    padding-bottom: 1em;
+    
+    min-height: 37px;
+}
