@@ -4,9 +4,11 @@ import { Briefcase, Building2, Code, Calendar, FileText } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import { useInterview } from '../../hooks/useInterview';
 
 const InterviewInput = () => {
   const navigate = useNavigate();
+  const { generatePrep, loading, error } = useInterview();
   const [formData, setFormData] = useState({
     company: '',
     role: '',
@@ -17,7 +19,7 @@ const InterviewInput = () => {
     useResume: true,
   });
 
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [generalError, setGeneralError] = useState('');
 
   const suggestedTechs = [
     'JavaScript', 'React', 'Node.js', 'Python', 'Java',
@@ -49,15 +51,27 @@ const InterviewInput = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsGenerating(true);
+    setGeneralError('');
     
-    // Developer B will implement actual API call
-    setTimeout(() => {
-      console.log('Generating interview prep for:', formData);
-      navigate('/interview-result?id=mock123');
-    }, 2000);
+    // Call the generatePrep function from useInterview hook
+    const result = await generatePrep({
+      company: formData.company,
+      role: formData.role,
+      technologies: formData.techTags,
+      interviewDate: formData.interviewDate,
+      jobDescription: formData.jobDescription,
+      useResume: formData.useResume,
+    });
+    
+    if (result.success) {
+      console.log('✅ Interview prep generated, redirecting to result');
+      navigate(`/interview-result/${result.data.prepId || result.data.id}`, { replace: true });
+    } else {
+      console.log('❌ Interview prep generation failed:', result.error);
+      setGeneralError(result.error || 'Failed to generate interview prep. Please try again.');
+    }
   };
 
   return (
@@ -77,6 +91,11 @@ const InterviewInput = () => {
 
       {/* Form */}
       <form onSubmit={handleSubmit}>
+        {generalError && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            {generalError}
+          </div>
+        )}
         <Card>
           <div className="space-y-6">
             {/* Company & Role */}
@@ -209,9 +228,9 @@ const InterviewInput = () => {
             variant="primary"
             fullWidth
             size="lg"
-            disabled={isGenerating || !formData.company || !formData.role}
+            disabled={loading || !formData.company || !formData.role}
           >
-            {isGenerating ? (
+            {loading ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 Generating Interview Prep...

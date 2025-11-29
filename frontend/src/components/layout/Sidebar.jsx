@@ -1,8 +1,11 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { Home, Briefcase, History, LogOut, Menu, X } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const navItems = [
     { path: '/main', icon: Home, label: 'Home' },
     { path: '/interview', icon: Briefcase, label: 'Interview Prep' },
@@ -63,8 +66,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         <div className="p-4 border-t border-gray-700">
           <button
             onClick={() => {
-              // Developer B will implement logout logic
-              console.log('Logout clicked');
+              logout();
+              navigate('/login', { replace: true });
             }}
             className="flex items-center gap-3 w-full px-4 py-3 text-gray-300 hover:bg-red-600 hover:text-white rounded-lg transition-all duration-200"
           >

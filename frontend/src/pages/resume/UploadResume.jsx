@@ -3,27 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Sparkles } from 'lucide-react';
 import FileUploader from '../../components/upload/FileUploader';
 import Card from '../../components/ui/Card';
+import { useResume } from '../../hooks/useResume';
 
 const UploadResume = () => {
   const navigate = useNavigate();
+  const { uploadResume, loading, uploadProgress, error } = useResume();
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleFileSelect = (file) => {
+  const handleFileSelect = async (file) => {
     setUploadedFile(file);
-    handleUpload(file);
+    await handleUpload(file);
   };
 
   const handleUpload = async (file) => {
-    setIsProcessing(true);
+    const result = await uploadResume(file);
     
-    // Developer B will implement actual upload and processing
-    // Simulate processing
-    setTimeout(() => {
-      console.log('Processing file:', file.name);
-      setIsProcessing(false);
-      navigate('/resume-result?id=mock123');
-    }, 3000);
+    if (result.success) {
+      console.log('✅ Resume uploaded successfully');
+      navigate(`/resume-result/${result.data.analysisId || result.data.id}`, { replace: true });
+    } else {
+      console.error('❌ Resume upload failed:', result.error);
+      // Error is already set in the hook, can be displayed to user
+    }
   };
 
   return (
@@ -46,19 +47,33 @@ const UploadResume = () => {
         <FileUploader onFileSelect={handleFileSelect} />
       </Card>
 
+      {/* Error Message */}
+      {error && (
+        <Card>
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        </Card>
+      )}
+
       {/* Processing Status */}
-      {isProcessing && (
+      {loading && (
         <Card>
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Analyzing Your Resume
+              {uploadProgress < 100 ? 'Uploading Your Resume' : 'Analyzing Your Resume'}
             </h3>
             <p className="text-gray-600 mb-4">
-              Our AI is extracting skills, experience, and education...
+              {uploadProgress < 100 
+                ? `Uploading... ${uploadProgress}%`
+                : 'Our AI is extracting skills, experience, and education...'}
             </p>
             <div className="w-full max-w-md mx-auto bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
             </div>
           </div>
         </Card>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Briefcase, TrendingUp, Target } from 'lucide-react';
 import Card from '../../components/ui/Card';
@@ -7,56 +7,106 @@ import FileUploader from '../../components/upload/FileUploader';
 import SkillChart from '../../components/dashboard/SkillChart';
 import JobCard from '../../components/jobs/JobCard';
 import JobDetailsModal from '../../components/jobs/JobDetailsModal';
+import { useResume } from '../../hooks/useResume';
+import { useInterview } from '../../hooks/useInterview';
+import jobService from '../../services/jobService';
+import { useAuth } from '../../hooks/useAuth';
 
 const Main = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { profile, getProfile } = useResume();
+  const { getHistory: getInterviewHistory } = useInterview();
   const [selectedJob, setSelectedJob] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [jobs, setJobs] = useState([]);
+  const [stats, setStats] = useState([
+    { label: 'Resume Uploaded', value: 'No', icon: Upload, color: 'bg-gray-50 text-gray-600' },
+    { label: 'Jobs Matched', value: '0', icon: Briefcase, color: 'bg-blue-50 text-blue-600' },
+    { label: 'Avg Match Score', value: '0%', icon: TrendingUp, color: 'bg-purple-50 text-purple-600' },
+    { label: 'Interviews Prepped', value: '0', icon: Target, color: 'bg-orange-50 text-orange-600' },
+  ]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - Developer B will fetch from API
-  const stats = [
-    { label: 'Resume Uploaded', value: 'Yes', icon: Upload, color: 'bg-green-50 text-green-600' },
-    { label: 'Jobs Matched', value: '12', icon: Briefcase, color: 'bg-blue-50 text-blue-600' },
-    { label: 'Avg Match Score', value: '78%', icon: TrendingUp, color: 'bg-purple-50 text-purple-600' },
-    { label: 'Interviews Prepped', value: '3', icon: Target, color: 'bg-orange-50 text-orange-600' },
-  ];
+  // Fetch data on mount
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
-  const mockJobs = [
-    {
-      id: 1,
-      title: 'Senior Frontend Developer',
-      company: 'TechCorp Inc.',
-      location: 'Remote',
-      postedDate: '2 days ago',
-      matchScore: 92,
-      requirements: ['React', 'TypeScript', 'Node.js', 'AWS'],
-      salary: '$120k - $160k',
-      jobType: 'Full-time',
-      matchExplanation: 'Excellent match based on your React and TypeScript expertise',
-      userSkills: ['React', 'TypeScript', 'JavaScript', 'CSS'],
-      missingSkills: ['AWS Certification'],
-      description: 'We are looking for an experienced frontend developer...'
-    },
-    {
-      id: 2,
-      title: 'Full Stack Engineer',
-      company: 'StartupXYZ',
-      location: 'New York, NY',
-      postedDate: '5 days ago',
-      matchScore: 85,
-      requirements: ['React', 'Node.js', 'MongoDB', 'Docker'],
-      salary: '$100k - $140k',
-      jobType: 'Full-time',
-      matchExplanation: 'Strong match with your full-stack background',
-      userSkills: ['React', 'Node.js', 'JavaScript'],
-      missingSkills: ['Docker', 'Kubernetes'],
-      description: 'Join our fast-growing startup...'
-    },
-  ];
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      // Fetch profile to check if resume is uploaded
+      const profileResult = await getProfile();
+      
+      // Fetch matched jobs
+      let jobsResult = null;
+      let jobStatsResult = null;
+      try {
+        jobsResult = await jobService.getMatchedJobs();
+        jobStatsResult = await jobService.getJobStats();
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+      }
+      
+      // Fetch interview history
+      const interviewHistoryResult = await getInterviewHistory();
+      
+      // Update stats
+      setStats([
+        { 
+          label: 'Resume Uploaded', 
+          value: profileResult.success && profileResult.data ? 'Yes' : 'No', 
+          icon: Upload, 
+          color: profileResult.success && profileResult.data ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-600' 
+        },
+        { 
+          label: 'Jobs Matched', 
+          value: jobsResult?.jobs?.length?.toString() || '0', 
+          icon: Briefcase, 
+          color: 'bg-blue-50 text-blue-600' 
+        },
+        { 
+          label: 'Avg Match Score', 
+          value: jobStatsResult?.averageMatchScore ? `${jobStatsResult.averageMatchScore}%` : '0%', 
+          icon: TrendingUp, 
+          color: 'bg-purple-50 text-purple-600' 
+        },
+        { 
+          label: 'Interviews Prepped', 
+          value: interviewHistoryResult?.success ? interviewHistoryResult.data?.preps?.length?.toString() || '0' : '0', 
+          icon: Target, 
+          color: 'bg-orange-50 text-orange-600' 
+        },
+      ]);
+      
+      // Set jobs (limit to 2 for display)
+      if (jobsResult?.jobs) {
+        setJobs(jobsResult.jobs.slice(0, 2).map(job => ({
+          id: job.id,
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          postedDate: new Date(job.postedDate).toLocaleDateString(),
+          matchScore: job.compatibilityScore || job.matchScore,
+          requirements: job.requirements || job.technologies || [],
+          salary: job.salary ? `$${job.salary.min/1000}k - $${job.salary.max/1000}k` : 'Not specified',
+          jobType: 'Full-time',
+          matchExplanation: job.recommendations || 'Good match based on your profile',
+          userSkills: job.alignedSkills || [],
+          missingSkills: job.missingSkills || [],
+          description: job.description || ''
+        })));
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleFileSelect = (file) => {
-    console.log('File selected:', file);
-    // Developer B will handle upload
+  const handleFileSelect = async (file) => {
+    navigate('/resume-upload');
   };
 
   const handleJobClick = (job) => {
@@ -68,7 +118,7 @@ const Main = () => {
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-        <h1 className="text-3xl font-bold mb-2">Welcome back, User! 👋</h1>
+        <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.fullName || 'User'}! 👋</h1>
         <p className="text-blue-100">
           Your AI-powered career assistant is ready to help you find the perfect opportunities
         </p>
@@ -111,17 +161,30 @@ const Main = () => {
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-800">Recommended Jobs</h2>
-          <Button variant="outline">View All</Button>
+          <Button variant="outline" onClick={() => navigate('/main')}>View All</Button>
         </div>
-        <div className="grid lg:grid-cols-2 gap-6">
-          {mockJobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              onViewDetails={handleJobClick}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-gray-600 mt-2">Loading jobs...</p>
+          </div>
+        ) : jobs.length > 0 ? (
+          <div className="grid lg:grid-cols-2 gap-6">
+            {jobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                onViewDetails={handleJobClick}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <div className="text-center py-8">
+              <p className="text-gray-600">No jobs matched yet. Upload your resume to get personalized recommendations!</p>
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* Quick Actions */}

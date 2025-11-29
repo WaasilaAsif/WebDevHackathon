@@ -1,7 +1,37 @@
-import React from 'react';
-import { Menu, Bell, User } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Menu, User, LogOut, ChevronDown } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
 const Header = ({ toggleSidebar, userName = 'Guest' }) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+    setIsDropdownOpen(false);
+  };
+
   return (
     <header className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-30">
       <div className="flex items-center justify-between px-4 py-4">
@@ -21,26 +51,47 @@ const Header = ({ toggleSidebar, userName = 'Guest' }) => {
           </h2>
         </div>
 
-        {/* Right: Notifications and User */}
+        {/* Right: User */}
         <div className="flex items-center gap-4">
-          {/* Notifications */}
-          <button
-            className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell size={20} className="text-gray-700" />
-            {/* Notification badge */}
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+          {/* User Profile Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+            >
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <User size={18} className="text-white" />
+              </div>
+              <span className="hidden md:block text-sm font-medium text-gray-700">
+                {userName}
+              </span>
+              <ChevronDown 
+                size={16} 
+                className={`text-gray-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
 
-          {/* User Profile */}
-          <div className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-              <User size={18} className="text-white" />
-            </div>
-            <span className="hidden md:block text-sm font-medium text-gray-700">
-              {userName}
-            </span>
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                {/* User Info */}
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <p className="text-sm font-semibold text-gray-800">{userName}</p>
+                  <p className="text-xs text-gray-500 mt-1">{user?.email || ''}</p>
+                </div>
+
+                {/* Logout */}
+                <div className="pt-1">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut size={18} />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

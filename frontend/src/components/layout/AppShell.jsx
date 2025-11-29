@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { useAuth } from '../../hooks/useAuth';
 
 const AppShell = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user } = useAuth();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -17,7 +19,7 @@ const AppShell = ({ children }) => {
       {/* Main content area */}
       <div className="flex-1 flex flex-col lg:ml-64">
         {/* Header */}
-        <Header toggleSidebar={toggleSidebar} />
+        <Header toggleSidebar={toggleSidebar} userName={user?.fullName || 'Guest'} />
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-6">

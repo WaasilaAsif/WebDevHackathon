@@ -1,15 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Briefcase, Calendar, Eye, Trash2, Filter } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import { useNavigate } from 'react-router-dom';
+import { useResume } from '../../hooks/useResume';
+import { useInterview } from '../../hooks/useInterview';
 
 const History = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('all'); // all, resume, interview
+  const { getHistory: getResumeHistory, loading: resumeLoading } = useResume();
+  const { getHistory: getInterviewHistory, deletePrep, loading: interviewLoading } = useInterview();
+  const [historyItems, setHistoryItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - Developer B will fetch from API
-  const historyItems = [
+  // Fetch history on mount
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    setLoading(true);
+    try {
+      const [resumeResult, interviewResult] = await Promise.all([
+        getResumeHistory(),
+        getInterviewHistory()
+      ]);
+
+      const items = [];
+
+      // Add resume analyses
+      if (resumeResult.success && resumeResult.data?.analyses) {
+        resumeResult.data.analyses.forEach((analysis) => {
+          items.push({
+            id: analysis.id,
+            type: 'resume',
+            title: 'Resume Analysis',
+            date: analysis.uploadedAt || analysis.createdAt,
+            description: `${analysis.fileName || 'Resume'} - Analysis completed`,
+            status: analysis.status || 'completed',
+          });
+        });
+      }
+
+      // Add interview preps
+      if (interviewResult.success && interviewResult.data?.preps) {
+        interviewResult.data.preps.forEach((prep) => {
+          items.push({
+            id: prep.id || prep.prepId,
+            type: 'interview',
+            title: `${prep.company} - ${prep.role}`,
+            date: prep.createdAt,
+            description: `Interview prep for ${prep.role} position`,
+            status: prep.status || 'completed',
+          });
+        });
+      }
+
+      // Sort by date (newest first)
+      items.sort((a, b) => new Date(b.date) - new Date(a.date));
+      setHistoryItems(items);
+    } catch (error) {
+      console.error('Error loading history:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mock data fallback - Developer B will fetch from API
+  const mockHistoryItems = [
     {
       id: '1',
       type: 'resume',
@@ -53,8 +112,8 @@ const History = () => {
   ];
 
   const filteredItems = filter === 'all'
-    ? historyItems
-    : historyItems.filter(item => item.type === filter);
+    ? (historyItems.length > 0 ? historyItems : mockHistoryItems)
+    : (historyItems.length > 0 ? historyItems : mockHistoryItems).filter(item => item.type === filter);
 
   const getIcon = (type) => {
     return type === 'resume' ? FileText : Briefcase;
@@ -68,15 +127,28 @@ const History = () => {
 
   const handleView = (item) => {
     if (item.type === 'resume') {
-      navigate(`/resume-result?id=${item.id}`);
+      navigate(`/resume-result/${item.id}`);
     } else {
-      navigate(`/interview-result?id=${item.id}`);
+      navigate(`/interview-result/${item.id}`);
     }
   };
 
-  const handleDelete = (id) => {
-    // Developer B will implement delete functionality
-    console.log('Delete item:', id);
+  const handleDelete = async (item) => {
+    try {
+      if (item.type === 'interview') {
+        const result = await deletePrep(item.id);
+        if (result.success) {
+          // Reload history
+          loadHistory();
+        }
+      } else {
+        // Resume deletion would go here if implemented
+        console.log('Delete resume analysis:', item.id);
+        loadHistory();
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
   };
 
   return (
@@ -212,7 +284,7 @@ const History = () => {
                           View
                         </Button>
                         <Button
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDelete(item)}
                           variant="danger"
                           size="sm"
                         >
