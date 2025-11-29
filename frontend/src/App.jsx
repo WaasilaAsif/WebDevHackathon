@@ -1,7 +1,30 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { useAuth } from './hooks/useAuth';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Layout
+import AppShell from './components/layout/AppShell';
+
+// Auth Pages
+import Login from './pages/auth/Login';
+import Signup from './pages/auth/Signup';
+import Onboarding from './pages/auth/Onboarding';
+
+// Main Pages
+import Main from './pages/home/Main';
+import UploadResume from './pages/resume/UploadResume';
+import ResumeResult from './pages/resume/ResumeResult';
+import InterviewInput from './pages/interview/InterviewInput';
+import InterviewResult from './pages/interview/InterviewResult';
+import History from './pages/history/History';
+
+function App() {
+  // Developer B will implement actual authentication check
+  const isAuthenticated = true; // Mock authentication
+
+  // Protected Route Component
+  const ProtectedRoute = ({ children }) => {
+    return isAuthenticated ? children : <Navigate to="/login" />;
+  };
 
 // Auth pages
 import Login from './pages/auth/Login';
@@ -93,70 +116,80 @@ const OnboardingRoute = ({ children }) => {
 
 function AppRoutes() {
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/signup"
-        element={
-          <PublicRoute>
-            <Signup />
-          </PublicRoute>
-        }
-      />
+    <Router>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/onboarding" element={<Onboarding />} />
 
-      {/* Onboarding route */}
-      <Route
-        path="/onboarding"
-        element={
-          <OnboardingRoute>
-            <Onboarding />
-          </OnboardingRoute>
-        }
-      />
+        {/* Protected Routes - Wrapped in AppShell */}
+        <Route
+          path="/main"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <Main />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/resume-upload"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <UploadResume />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/resume-result"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <ResumeResult />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/interview"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <InterviewInput />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/interview-result"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <InterviewResult />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <History />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Protected routes with AppShell */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Main />} />
-        <Route path="resume">
-          <Route path="upload" element={<UploadResume />} />
-          <Route path="result/:analysisId" element={<ResumeResult />} />
-        </Route>
-        <Route path="interview">
-          <Route path="new" element={<InterviewInput />} />
-          <Route path="result/:prepId" element={<InterviewResult />} />
-        </Route>
-        <Route path="history" element={<History />} />
-      </Route>
-
-      {/* Catch all - redirect to dashboard or login */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-}
-
-function App() {
-  return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+        {/* Default Route */}
+        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    </Router>
   );
 }
 
