@@ -1,12 +1,14 @@
 import express from "express";
 import multer from "multer";
 import { uploadResume } from "../controllers/resume.controller.js";
-import { protect } from "../middleware/auth.js";
+
+// Multer config: store files in memory
+const storage = multer.memoryStorage();
+export const upload = multer({ storage });
 
 const router = express.Router();
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
 
-router.post("/upload", protect, upload.single("resume"), uploadResume);
+// field name must match Postman key
+router.post("/upload", upload.single("resume"), uploadResume);
 
 export default router;
